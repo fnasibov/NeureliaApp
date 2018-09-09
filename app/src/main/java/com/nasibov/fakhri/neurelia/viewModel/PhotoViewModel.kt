@@ -3,41 +3,49 @@ package com.nasibov.fakhri.neurelia.viewModel
 import android.util.Log
 import android.view.View
 import androidx.lifecycle.MutableLiveData
+import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.base.BaseViewModel
+import com.nasibov.fakhri.neurelia.model.photo.Photo
+import com.nasibov.fakhri.neurelia.model.photo.PhotoDao
 import com.nasibov.fakhri.neurelia.repository.network.NeureliaAPI
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import javax.inject.Inject
 
-class PhotoViewModel : BaseViewModel() {
+class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
     @Inject
     lateinit var neureliaAPI: NeureliaAPI
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
+    val errorMassage: MutableLiveData<Int> = MutableLiveData()
+    val errorClickListener = View.OnClickListener { getAllPhotos() }
 
     init {
-        loadPosts()
+        getAllPhotos()
     }
 
     private lateinit var subscription: Disposable
 
-    private fun loadPosts() {
-        subscription = neureliaAPI.getPosts()
+    private fun getAllPhotos() {
+        subscription = Observable.fromCallable { photoDao.loadAllPhotos() }
+                .concatMap { dbPhotoList -> Observable.just(dbPhotoList) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe { onRetrievePostListStart() }
                 .doOnTerminate { onRetrievePostListFinish() }
                 .subscribe(
-                        { onRetrievePostListSuccess() },
-                        { onRetrievePostListError(it) }
+                        { result -> onRetrievePostListSuccess(result) },
+                        { onRetrievePostListError() }
                 )
     }
 
     private fun onRetrievePostListStart() {
         Log.i("PhotoViewModel", "onRetrievePostListStart")
         loadingVisibility.value = View.VISIBLE
+        errorMassage.value = null
     }
 
     private fun onRetrievePostListFinish() {
@@ -45,11 +53,11 @@ class PhotoViewModel : BaseViewModel() {
         loadingVisibility.value = View.GONE
     }
 
-    private fun onRetrievePostListSuccess() {
-        Log.i("PhotoViewModel", "onRetrievePostListSuccess")
+    private fun onRetrievePostListSuccess(result: List<Photo>) {
+        Log.i("PhotoViewModel", "list of size ${result.size}")
     }
 
-    private fun onRetrievePostListError(throwable: Throwable) {
-        Log.e("PhotoViewModel", "onRetrievePostListError: ${throwable.stackTrace}")
+    private fun onRetrievePostListError() {
+        errorMassage.value = R.string.post_error
     }
 }
