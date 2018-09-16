@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-path
+        name="face_images"
+        path="Android/data/com.nasibov.fakhri.neurelia/files/Pictures" />
+</paths>

@@ -12,6 +12,7 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import java.io.File
 import javax.inject.Inject
 
 class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
@@ -21,7 +22,6 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
     val errorMassage: MutableLiveData<Int> = MutableLiveData()
-    val errorClickListener = View.OnClickListener { getAllPhotos() }
 
     init {
         getAllPhotos()
@@ -40,6 +40,11 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
                         { result -> onRetrievePostListSuccess(result) },
                         { onRetrievePostListError() }
                 )
+    }
+
+    fun savePhoto(currentImage: File) {
+        val photo = Photo(fileName = currentImage.name, filePath = currentImage.absolutePath)
+        photoDao.insert(photo)
     }
 
     private fun onRetrievePostListStart() {
