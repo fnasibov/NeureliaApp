@@ -9,6 +9,7 @@ import com.nasibov.fakhri.neurelia.model.photo.Photo
 import com.nasibov.fakhri.neurelia.model.photo.PhotoDao
 import com.nasibov.fakhri.neurelia.repository.network.NeureliaAPI
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
@@ -22,6 +23,7 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
     val errorMassage: MutableLiveData<Int> = MutableLiveData()
+    val allPhotos: MutableLiveData<List<Photo>> = MutableLiveData()
 
     init {
         getAllPhotos()
@@ -30,8 +32,7 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     private lateinit var subscription: Disposable
 
     private fun getAllPhotos() {
-        subscription = Observable.fromCallable { photoDao.loadAllPhotos() }
-                .concatMap { dbPhotoList -> Observable.just(dbPhotoList) }
+        subscription = photoDao.loadAllPhotos()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe { onRetrievePostListStart() }
@@ -44,7 +45,9 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
     fun savePhoto(currentImage: File) {
         val photo = Photo(fileName = currentImage.name, filePath = currentImage.absolutePath)
-        photoDao.insert(photo)
+        Single.fromCallable { photoDao.insert(photo) }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread()).subscribe()
     }
 
     private fun onRetrievePostListStart() {
@@ -60,6 +63,8 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
     private fun onRetrievePostListSuccess(result: List<Photo>) {
         Log.i("PhotoViewModel", "list of size ${result.size}")
+        allPhotos.value = result
+        loadingVisibility.value = View.GONE
     }
 
     private fun onRetrievePostListError() {

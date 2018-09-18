@@ -2,6 +2,8 @@ package com.nasibov.fakhri.neurelia.ui.photo
 
 
 import android.app.Activity
+import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
@@ -16,11 +18,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 
 import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.injection.ViewModelFactory
+import com.nasibov.fakhri.neurelia.ui.photo.recycler.PhotoAdapter
 import com.nasibov.fakhri.neurelia.viewModel.PhotoViewModel
+import kotlinx.android.synthetic.main.fragment_photo.*
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -28,7 +34,6 @@ import java.util.*
 
 class PhotoFragment : Fragment() {
 
-    private var errorSnackbar: Snackbar? = null
     private lateinit var viewModel: PhotoViewModel
     private lateinit var currentImage: File
 
@@ -37,8 +42,17 @@ class PhotoFragment : Fragment() {
 
         val view = inflater.inflate(R.layout.fragment_photo, container, false)
         viewModel = ViewModelProviders.of(this, ViewModelFactory(activity as AppCompatActivity)).get(PhotoViewModel::class.java)
-        viewModel.errorMassage.observe(this, Observer { errorMessage -> if (errorMessage != null) showError(errorMessage) else hideError() })
+        viewModel.errorMassage.observe(this, Observer { errorMessage -> if (errorMessage != null) showError(errorMessage) })
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewModel.loadingVisibility.observe(this, Observer { photoProgressBar.visibility = it })
+        recyclerPhoto.layoutManager = GridLayoutManager(activity?.applicationContext!!, 3)
+        val photoAdapter = PhotoAdapter(listOf(), activity?.applicationContext!!)
+        recyclerPhoto.adapter = photoAdapter
+        viewModel.allPhotos.observe(this, Observer { photoList -> photoAdapter.updatePhotoList(photoList)})
     }
 
     private fun showError(@StringRes errorMessage: Int) {
@@ -46,12 +60,7 @@ class PhotoFragment : Fragment() {
                 errorMessage, Toast.LENGTH_SHORT).show()
     }
 
-    private fun hideError() {
-        errorSnackbar?.dismiss()
-    }
-
     fun takePhoto() {
-
         val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         if (takePictureIntent.resolveActivity(activity?.packageManager!!) != null) {
             val photoFile: File
