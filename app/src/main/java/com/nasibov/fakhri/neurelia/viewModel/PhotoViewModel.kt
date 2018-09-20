@@ -8,7 +8,6 @@ import com.nasibov.fakhri.neurelia.base.BaseViewModel
 import com.nasibov.fakhri.neurelia.model.photo.Photo
 import com.nasibov.fakhri.neurelia.model.photo.PhotoDao
 import com.nasibov.fakhri.neurelia.repository.network.NeureliaAPI
-import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -22,7 +21,7 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     lateinit var neureliaAPI: NeureliaAPI
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
-    val errorMassage: MutableLiveData<Int> = MutableLiveData()
+    val SnackbarMessage: MutableLiveData<Int> = MutableLiveData()
     val allPhotos: MutableLiveData<List<Photo>> = MutableLiveData()
 
     init {
@@ -53,12 +52,10 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     private fun onRetrievePostListStart() {
         Log.i("PhotoViewModel", "onRetrievePostListStart")
         loadingVisibility.value = View.VISIBLE
-        errorMassage.value = null
     }
 
     private fun onRetrievePostListFinish() {
         Log.i("PhotoViewModel", "onRetrievePostListFinish")
-        loadingVisibility.value = View.GONE
     }
 
     private fun onRetrievePostListSuccess(result: List<Photo>) {
@@ -68,6 +65,6 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     }
 
     private fun onRetrievePostListError() {
-        errorMassage.value = R.string.post_error
+        SnackbarMessage.value = R.string.message_error
     }
 }

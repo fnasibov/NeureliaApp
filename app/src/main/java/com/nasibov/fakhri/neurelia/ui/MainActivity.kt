@@ -14,7 +14,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(mainBottomAppBar)
         if (savedInstanceState == null) {
             val photoFragment = PhotoFragment.newInstance()
-            photoFab.setOnClickListener { photoFragment.takePhoto() }
             supportFragmentManager.beginTransaction()
                     .replace(R.id.fragmentContainer, photoFragment)
                     .commitNow()

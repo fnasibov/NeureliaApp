@@ -1,8 +1,6 @@
 package com.nasibov.fakhri.neurelia.ui.photo.recycler
 
 import android.content.Context
-import android.graphics.BitmapFactory
-import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -10,7 +8,6 @@ import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.model.photo.Photo
 import com.squareup.picasso.Picasso
 import java.io.File
-import android.graphics.Bitmap
 
 
 class PhotoAdapter(private var photos: List<Photo>, private val context: Context) : RecyclerView.Adapter<PhotoHolder>() {
@@ -35,6 +32,4 @@ class PhotoAdapter(private var photos: List<Photo>, private val context: Context
                 .resize(1280, 720)
                 .into(photoView)
     }
-
-
 }

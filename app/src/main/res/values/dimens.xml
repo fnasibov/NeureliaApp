@@ -4,4 +4,5 @@
     <dimen name="corner_radius">8dp</dimen>
     <dimen name="recycler_photo_width">300dp</dimen>
     <dimen name="recycler_photo_height">150dp</dimen>
+    <dimen name="snackbar_bottom_margin">80dp</dimen>
 </resources>

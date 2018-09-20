@@ -2,24 +2,23 @@ package com.nasibov.fakhri.neurelia.ui.photo
 
 
 import android.app.Activity
-import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 
 import com.nasibov.fakhri.neurelia.R
@@ -29,6 +28,7 @@ import com.nasibov.fakhri.neurelia.viewModel.PhotoViewModel
 import kotlinx.android.synthetic.main.fragment_photo.*
 import java.io.File
 import java.io.IOException
+import java.lang.NullPointerException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -42,7 +42,7 @@ class PhotoFragment : Fragment() {
 
         val view = inflater.inflate(R.layout.fragment_photo, container, false)
         viewModel = ViewModelProviders.of(this, ViewModelFactory(activity as AppCompatActivity)).get(PhotoViewModel::class.java)
-        viewModel.errorMassage.observe(this, Observer { errorMessage -> if (errorMessage != null) showError(errorMessage) })
+        viewModel.SnackbarMessage.observe(this, Observer { errorMessage -> if (errorMessage != null) showSnackbar(errorMessage) })
         return view
     }
 
@@ -52,15 +52,31 @@ class PhotoFragment : Fragment() {
         recyclerPhoto.layoutManager = GridLayoutManager(activity?.applicationContext!!, 3)
         val photoAdapter = PhotoAdapter(listOf(), activity?.applicationContext!!)
         recyclerPhoto.adapter = photoAdapter
-        viewModel.allPhotos.observe(this, Observer { photoList -> photoAdapter.updatePhotoList(photoList)})
+        viewModel.allPhotos.observe(this, Observer { photoList -> photoAdapter.updatePhotoList(photoList) })
+        activity?.findViewById<FloatingActionButton>(R.id.mainFab)?.apply {
+            setImageDrawable(resources.getDrawable(R.drawable.ic_camera_alt_24px, activity?.applicationContext?.theme))
+            setOnClickListener { takePhoto() }
+        }
     }
 
-    private fun showError(@StringRes errorMessage: Int) {
-        Toast.makeText(activity?.applicationContext,
-                errorMessage, Toast.LENGTH_SHORT).show()
+    private fun showSnackbar(@StringRes errorMessage: Int) {
+        Log.i("PhotoFragment", "Snackbar showed!")
+        val marginBottom = resources.getDimension(R.dimen.snackbar_bottom_margin).toInt()
+        val snackbar = Snackbar.make(photoListContainer, errorMessage, Snackbar.LENGTH_SHORT)
+        val snackbarView = snackbar.view
+        val layoutParams = snackbarView.layoutParams as CoordinatorLayout.LayoutParams
+        layoutParams.apply {
+            setMargins(
+                    leftMargin,
+                    topMargin,
+                    rightMargin,
+                    bottomMargin + marginBottom
+            )
+        }
+        snackbar.show()
     }
 
-    fun takePhoto() {
+    private fun takePhoto() {
         val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         if (takePictureIntent.resolveActivity(activity?.packageManager!!) != null) {
             val photoFile: File
