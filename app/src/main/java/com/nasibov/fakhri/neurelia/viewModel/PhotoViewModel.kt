@@ -10,10 +10,11 @@ import com.nasibov.fakhri.neurelia.model.photo.PhotoDao
 import com.nasibov.fakhri.neurelia.repository.network.NeureliaAPI
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import java.io.File
 import javax.inject.Inject
+
 
 class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
@@ -21,17 +22,17 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     lateinit var neureliaAPI: NeureliaAPI
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
-    val SnackbarMessage: MutableLiveData<Int> = MutableLiveData()
+    val snackbarMessage: MutableLiveData<Int> = MutableLiveData()
     val allPhotos: MutableLiveData<List<Photo>> = MutableLiveData()
+
+    private val compositeDisposable = CompositeDisposable()
 
     init {
         getAllPhotos()
     }
 
-    private lateinit var subscription: Disposable
-
     private fun getAllPhotos() {
-        subscription = photoDao.loadAllPhotos()
+        val subscription = photoDao.loadAllPhotos()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe { onRetrievePostListStart() }
@@ -40,6 +41,7 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
                         { result -> onRetrievePostListSuccess(result) },
                         { onRetrievePostListError() }
                 )
+        compositeDisposable.add(subscription)
     }
 
     fun savePhoto(currentImage: File) {
@@ -65,6 +67,12 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     }
 
     private fun onRetrievePostListError() {
-        SnackbarMessage.value = R.string.message_error
+        snackbarMessage.value = R.string.message_error
     }
+
+    override fun onCleared() {
+        compositeDisposable.dispose()
+        super.onCleared()
+    }
+
 }

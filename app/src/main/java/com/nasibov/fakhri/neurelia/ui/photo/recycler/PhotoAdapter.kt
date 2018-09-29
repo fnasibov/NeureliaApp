@@ -4,13 +4,14 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector
 import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.model.photo.Photo
-import com.squareup.picasso.Picasso
+import com.nasibov.fakhri.neurelia.util.GlideApp
 import java.io.File
 
 
-class PhotoAdapter(private var photos: List<Photo>, private val context: Context) : RecyclerView.Adapter<PhotoHolder>() {
+class PhotoAdapter(private var photos: List<Photo>, private val context: Context, private val faceDetector: FirebaseVisionFaceDetector) : RecyclerView.Adapter<PhotoHolder>() {
 
     fun updatePhotoList(newPhotos: List<Photo>) {
         photos = newPhotos
@@ -26,10 +27,13 @@ class PhotoAdapter(private var photos: List<Photo>, private val context: Context
     }
 
     override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
-        val photoView = holder.photoView
-        Picasso.get()
-                .load(File(photos[position].filePath))
-                .resize(1280, 720)
-                .into(photoView)
+
+        val file = File(photos[position].filePath)
+        GlideApp.with(context)
+                .load(file)
+                .override(1280, 720)
+                .into(holder.photoView)
+
+
     }
 }
