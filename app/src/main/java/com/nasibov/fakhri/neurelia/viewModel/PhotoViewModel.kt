@@ -7,19 +7,17 @@ import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.base.BaseViewModel
 import com.nasibov.fakhri.neurelia.model.photo.Photo
 import com.nasibov.fakhri.neurelia.model.photo.PhotoDao
-import com.nasibov.fakhri.neurelia.repository.network.NeureliaAPI
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import java.io.File
-import javax.inject.Inject
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
 
-    @Inject
-    lateinit var neureliaAPI: NeureliaAPI
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
     val snackbarMessage: MutableLiveData<Int> = MutableLiveData()
@@ -32,23 +30,34 @@ class PhotoViewModel(private val photoDao: PhotoDao) : BaseViewModel() {
     }
 
     private fun getAllPhotos() {
-        val subscription = photoDao.loadAllPhotos()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe { onRetrievePostListStart() }
-                .doOnTerminate { onRetrievePostListFinish() }
-                .subscribe(
-                        { result -> onRetrievePostListSuccess(result) },
-                        { onRetrievePostListError() }
-                )
-        compositeDisposable.add(subscription)
+        compositeDisposable.add(
+                photoDao.loadAllPhotos()
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .doOnSubscribe { onRetrievePostListStart() }
+                        .doOnTerminate { onRetrievePostListFinish() }
+                        .subscribe(
+                                { result -> onRetrievePostListSuccess(result) },
+                                { onRetrievePostListError() }
+                        )
+        )
+    }
+
+    @Suppress("SimpleDateFormat")
+    fun createImageFile(externalFilesDir: File?): File {
+        val date = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val fileName = "JPEG_$date"
+
+        return externalFilesDir?.let { File.createTempFile(fileName, ".jpg", it) }!!
     }
 
     fun savePhoto(currentImage: File) {
         val photo = Photo(fileName = currentImage.name, filePath = currentImage.absolutePath)
-        Single.fromCallable { photoDao.insert(photo) }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread()).subscribe()
+        compositeDisposable.add(
+                Single.fromCallable { photoDao.insert(photo) }
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread()).subscribe()
+        )
     }
 
     private fun onRetrievePostListStart() {

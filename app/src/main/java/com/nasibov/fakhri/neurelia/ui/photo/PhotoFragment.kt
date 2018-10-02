@@ -1,6 +1,5 @@
 package com.nasibov.fakhri.neurelia.ui.photo
 
-
 import android.app.Activity
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -8,14 +7,11 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
@@ -23,7 +19,6 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.FirebaseApp
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
@@ -33,13 +28,11 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions
 import com.nasibov.fakhri.neurelia.R
 import com.nasibov.fakhri.neurelia.injection.ViewModelFactory
 import com.nasibov.fakhri.neurelia.ui.photo.recycler.PhotoAdapter
-import com.nasibov.fakhri.neurelia.util.rotate
+import com.nasibov.fakhri.neurelia.util.getRotatedBitmap
+import com.nasibov.fakhri.neurelia.util.showSnackbar
 import com.nasibov.fakhri.neurelia.viewModel.PhotoViewModel
 import kotlinx.android.synthetic.main.fragment_photo.*
 import java.io.File
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.*
 
 class PhotoFragment : Fragment() {
 
@@ -47,12 +40,13 @@ class PhotoFragment : Fragment() {
     private lateinit var mCurrentImage: File
     private lateinit var mFaceDetector: FirebaseVisionFaceDetector
 
+    @Suppress("CAST_NEVER_SUCCEEDS")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
         val view = inflater.inflate(R.layout.fragment_photo, container, false)
         mViewModel = ViewModelProviders.of(this, ViewModelFactory(activity as AppCompatActivity)).get(PhotoViewModel::class.java)
-        mViewModel.snackbarMessage.observe(this, Observer { errorMessage -> if (errorMessage != null) showSnackbar(errorMessage) })
+        mViewModel.snackbarMessage.observe(this, Observer { errorMessage -> if (errorMessage != null) showSnackbar(errorMessage, resources.getDimension(R.dimen.snackbar_bottom_margin).toInt(), photoListContainer) })
 
         FirebaseApp.initializeApp(activity?.applicationContext)
 
@@ -78,37 +72,19 @@ class PhotoFragment : Fragment() {
             setImageDrawable(resources.getDrawable(R.drawable.ic_camera_alt_24px, activity?.applicationContext?.theme))
             setOnClickListener { takePhoto() }
         }
-    }
 
-    private fun showSnackbar(@StringRes errorMessage: Int) {
-        Log.i("PhotoFragment", "Snackbar showed!")
-        val marginBottom = resources.getDimension(R.dimen.snackbar_bottom_margin).toInt()
-        val snackbar = Snackbar.make(photoListContainer, errorMessage, Snackbar.LENGTH_SHORT)
-        val snackbarView = snackbar.view
-        val layoutParams = snackbarView.layoutParams as CoordinatorLayout.LayoutParams
-        layoutParams.apply {
-            setMargins(
-                    leftMargin,
-                    topMargin,
-                    rightMargin,
-                    bottomMargin + marginBottom
-            )
-        }
-        snackbar.show()
+
     }
 
     private fun takePhoto() {
         Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
             takePictureIntent.resolveActivity(activity?.packageManager!!).also {
-                val photoFile: File = try {
-                    createImageFile()
-                } catch (e: IOException) {
-                    error { e }
-                }
+
+                mCurrentImage = mViewModel.createImageFile(activity?.getExternalFilesDir(Environment.DIRECTORY_PICTURES))
 
                 val photoURI: Uri = FileProvider.getUriForFile(activity?.applicationContext!!,
                         "com.nasibov.fakhri.neurelia.fileprovider",
-                        photoFile
+                        mCurrentImage
                 )
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
                 startActivityForResult(takePictureIntent, PhotoFragment.REQUEST_TAKE_PHOTO)
@@ -117,37 +93,11 @@ class PhotoFragment : Fragment() {
         }
     }
 
-    @Suppress("SimpleDateFormat")
-    private fun createImageFile(): File {
-        val date = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val fileName = "JPEG_$date"
-        val filesDir = activity?.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val image = File.createTempFile(fileName, ".jpg", filesDir)
-
-        mCurrentImage = image
-        return mCurrentImage
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
 
-            val absolutePath = mCurrentImage.absolutePath
-            val exifInterface = ExifInterface(absolutePath)
-            val rotation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
-            val angle: Float = when (rotation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> 90F
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180F
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270F
-                ExifInterface.ORIENTATION_NORMAL -> 0F
-                else -> 0F
-            }
-
-            val bitmap = when (angle) {
-                0F -> BitmapFactory.decodeFile(absolutePath)
-                else -> BitmapFactory.decodeFile(absolutePath).rotate(angle)
-            }
-
-            val visionImage = bitmap?.let { FirebaseVisionImage.fromBitmap(it) }
+            val bitmap = mCurrentImage.absolutePath.let { BitmapFactory.decodeFile(it).getRotatedBitmap(ExifInterface(it)) }
+            val visionImage = bitmap.let { FirebaseVisionImage.fromBitmap(it) }
 
             visionImage?.let {
                 mFaceDetector.detectInImage(it)

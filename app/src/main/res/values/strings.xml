@@ -8,5 +8,6 @@
     <string name="undo">Undo</string>
     <string name="photo_list_item_description">Photo list item</string>
     <string name="test">Hello blyat\'!</string>
+    <string name="camera">Камера</string>
 
 </resources>
